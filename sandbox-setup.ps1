@@ -54,7 +54,9 @@ if (Test-IfWindowsSandbox) {
 $stepCounter++; Show-Progress "Downloading all required tools..."
 function Get-File ($url, $name) {
     $dest = "$env:TEMP\$name"
-    Write-Host "Downloading $name..."
+    $percent = [math]::Round(($stepCounter / $totalSteps) * 100)
+    $msg = "Downloading $name ..."
+    Write-Progress -Activity "Tool Downloads" -Status $msg -PercentComplete $percent
     Invoke-WebRequest -Uri $url -OutFile $dest
     return $dest
 }
