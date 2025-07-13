@@ -66,35 +66,35 @@ function Test-Tool {
 }
 
 # Run checks
-Check-Tool -Name "Git" -Command "git --version" `
+Test-Tool -Name "Git" -Command "git --version" `
     -SuccessMessage "Git is working!" `
     -FailMessage "Git not found."
 
-Check-Tool -Name "Java" -Command "java -version" `
+Test-Tool -Name "Java" -Command "java -version" `
     -SuccessMessage "Java is working!" `
     -FailMessage "Java not found."
 
-Check-Tool -Name "Javac (JDK)" -Command "javac -version" `
+Test-Tool -Name "Javac (JDK)" -Command "javac -version" `
     -SuccessMessage "JDK (javac) is working!" `
     -FailMessage "JDK (javac) not found."
 
-Check-Tool -Name "Maven" -Command "mvn -v" `
+Test-Tool -Name "Maven" -Command "mvn -v" `
     -SuccessMessage "Maven is working!" `
     -FailMessage "Maven not found."
 
-Check-Tool -Name "Node.js" -Command "node -v" `
+Test-Tool -Name "Node.js" -Command "node -v" `
     -SuccessMessage "Node.js is working!" `
     -FailMessage "Node.js not found."
 
-Check-Tool -Name "NPM" -Command "npm -v" `
+Test-Tool -Name "NPM" -Command "npm -v" `
     -SuccessMessage "NPM is working!" `
     -FailMessage "NPM not found."
 
-Check-Tool -Name "Docker" -Command "docker version --format '{{.Server.Version}}'" `
+Test-Tool -Name "Docker" -Command "docker version --format '{{.Server.Version}}'" `
     -SuccessMessage "Docker is working!" `
     -FailMessage "Docker not found or not running."
 
-Check-Tool -Name "PostgreSQL Service" -Command "Get-Service -Name postgresql*" `
+Test-Tool -Name "PostgreSQL Service" -Command "Get-Service -Name postgresql*" `
     -SuccessMessage "PostgreSQL service is installed!" `
     -FailMessage "PostgreSQL service not found."
 
