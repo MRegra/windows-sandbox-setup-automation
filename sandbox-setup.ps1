@@ -30,7 +30,7 @@ function Show-Progress($msg) {
 # --- STEP 1: SETUP WSL ---
 function Test-IfWindowsSandbox {
     $username = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-    return $username -eq "WDAGUtilityAccount"
+    return $username -match "WDAGUtilityAccount"
 }
 
 $stepCounter++
