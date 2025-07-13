@@ -9,13 +9,13 @@ $nvmUrl          = "https://github.com/coreybutler/nvm-windows/releases/latest/d
 $repoUrl         = "" # To be created
 
 # --- DOWNLOAD INSTALLERS ---
-Invoke-WebRequest -Uri $intellijUrl -OutFile "$env:TEMP\intellij.exe"
-Invoke-WebRequest -Uri $gitUrl -OutFile "$env:TEMP\git.exe"
-Invoke-WebRequest -Uri $javaUrl -OutFile "$env:TEMP\java.exe"
-Invoke-WebRequest -Uri $dockerUrl -OutFile "$env:TEMP\docker.exe"
-Invoke-WebRequest -Uri $postgresUrl -OutFile "$env:TEMP\postgres.exe"
-Invoke-WebRequest -Uri $nvmUrl -OutFile "$env:TEMP\nvm.exe"
-Invoke-WebRequest -Uri $mavenUrl -OutFile "$env:TEMP\maven.zip"
+Start-BitsTransfer -Source $intellijUrl -Destination "$env:TEMP\intellij.exe"
+Start-BitsTransfer -Source $gitUrl -Destination "$env:TEMP\git.exe"
+Start-BitsTransfer -Source $javaUrl -Destination "$env:TEMP\java.exe"
+Start-BitsTransfer -Source $dockerUrl -Destination "$env:TEMP\docker.exe"
+Start-BitsTransfer -Source $postgresUrl -Destination "$env:TEMP\postgres.exe"
+Start-BitsTransfer -Source $nvmUrl -Destination "$env:TEMP\nvm.exe"
+Start-BitsTransfer -Source $mavenUrl -Destination "$env:TEMP\maven.zip"
 
 # --- INSTALL ---
 Start-Process "$env:TEMP\git.exe" -Wait
@@ -38,5 +38,70 @@ Start-Sleep -Seconds 5
 
 # --- CLONE REPO ---
 git clone $repoUrl "$env:USERPROFILE\dev-project"
+
+# --- VALIDATION SECTION ---
+$validationResults = @()
+
+function Test-Tool {
+    param (
+        [string]$Name,
+        [string]$Command,
+        [string]$SuccessMessage,
+        [string]$FailMessage
+    )
+
+    Write-Host "`n🔎 Checking $Name..."
+    try {
+        $output = & $Command 2>&1
+        if ($LASTEXITCODE -eq 0 -or $output) {
+            Write-Host "✅ $SuccessMessage"
+            $validationResults += "✅ $Name installed successfully"
+        } else {
+            throw "No output"
+        }
+    } catch {
+        Write-Host "❌ $FailMessage"
+        $validationResults += "❌ $Name installation failed"
+    }
+}
+
+# Run checks
+Check-Tool -Name "Git" -Command "git --version" `
+    -SuccessMessage "Git is working!" `
+    -FailMessage "Git not found."
+
+Check-Tool -Name "Java" -Command "java -version" `
+    -SuccessMessage "Java is working!" `
+    -FailMessage "Java not found."
+
+Check-Tool -Name "Javac (JDK)" -Command "javac -version" `
+    -SuccessMessage "JDK (javac) is working!" `
+    -FailMessage "JDK (javac) not found."
+
+Check-Tool -Name "Maven" -Command "mvn -v" `
+    -SuccessMessage "Maven is working!" `
+    -FailMessage "Maven not found."
+
+Check-Tool -Name "Node.js" -Command "node -v" `
+    -SuccessMessage "Node.js is working!" `
+    -FailMessage "Node.js not found."
+
+Check-Tool -Name "NPM" -Command "npm -v" `
+    -SuccessMessage "NPM is working!" `
+    -FailMessage "NPM not found."
+
+Check-Tool -Name "Docker" -Command "docker version --format '{{.Server.Version}}'" `
+    -SuccessMessage "Docker is working!" `
+    -FailMessage "Docker not found or not running."
+
+Check-Tool -Name "PostgreSQL Service" -Command "Get-Service -Name postgresql*" `
+    -SuccessMessage "PostgreSQL service is installed!" `
+    -FailMessage "PostgreSQL service not found."
+
+# --- SAVE LOG ---
+$logPath = "$env:USERPROFILE\Desktop\validation-log.txt"
+$validationResults | Out-File -FilePath $logPath -Encoding utf8
+
+Write-Host "`n📝 Validation results saved to: $logPath"
 
 Write-Host "✅ Setup complete. You may need to restart the Sandbox for env vars to apply."
