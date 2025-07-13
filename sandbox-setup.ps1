@@ -9,8 +9,8 @@ $nvmUrl      = "https://github.com/coreybutler/nvm-windows/releases/latest/downl
 $repoUrl     = "" # <--- SET YOUR GIT REPO HERE
 
 # --- REQUIRE ADMIN ---
-if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole("Administrator")) {
-    Write-Error "❌ Please run this script as Administrator."
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Error "Please run this script as Administrator."
     exit
 }
 
@@ -44,7 +44,7 @@ wsl -d Ubuntu -- bash -c "sudo apt update && sudo apt upgrade -y"
 $stepCounter++; Show-Progress "Downloading all required tools..."
 function Get-File ($url, $name) {
     $dest = "$env:TEMP\$name"
-    Write-Host "📥 Downloading $name..."
+    Write-Host "Downloading $name..."
     Invoke-WebRequest -Uri $url -OutFile $dest
     return $dest
 }
@@ -106,14 +106,14 @@ function Test-Tool {
     try {
         $output = & $Command 2>&1
         if ($LASTEXITCODE -eq 0 -or $output) {
-            Write-Host "✅ $Success"
-            $validationResults += "✅ $Name OK"
+            Write-Host "$Success"
+            $validationResults += "$Name OK"
         } else {
             throw "No output"
         }
     } catch {
-        Write-Host "❌ $Failure"
-        $validationResults += "❌ $Name failed"
+        Write-Host "$Failure"
+        $validationResults += "$Name failed"
     }
 }
 
@@ -133,7 +133,7 @@ Show-Progress "Saving logs and preparing restart..."
 $logPath = "$env:USERPROFILE\Desktop\validation-log.txt"
 $validationResults | Out-File -FilePath $logPath -Encoding utf8
 Write-Host "Validation results saved to: $logPath"
-Write-Host "✅ Setup complete. Restart is optional but recommended."
+Write-Host "Setup complete. Restart is optional but recommended."
 Write-Host "Restarting in 60 seconds. Press Ctrl+C to cancel."
 Start-Sleep -Seconds 60
 shutdown /r /t 0
