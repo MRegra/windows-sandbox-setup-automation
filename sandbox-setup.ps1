@@ -8,6 +8,12 @@ $postgresUrl     = "https://get.enterprisedb.com/postgresql/postgresql-17.5-3-wi
 $nvmUrl          = "https://github.com/coreybutler/nvm-windows/releases/latest/download/nvm-setup.exe"
 $repoUrl         = "" # To be created
 
+# --- CHECK FOR ADMIN RIGHTS FIRST ---
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole("Administrator")) {
+    Write-Error "❌ Please run this script as Administrator."
+    exit
+}
+
 # --- PROGRESS BAR AUXILIARS ---
 $steps = @(
     "Downloading IntelliJ", "Downloading Git", "Downloading Java", "Downloading Docker", "Downloading PostgreSQL", "Downloading NVM", "Downloading Maven",
@@ -41,6 +47,10 @@ wsl --install --no-distribution
 
 # 3. Download and install a Linux distro (e.g., Ubuntu)
 Write-Host "Installing Ubuntu from Microsoft Store..."
+Invoke-WebRequest -Uri "https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi" -OutFile "$env:TEMP\wsl_update_x64.msi"
+Start-Process msiexec.exe -ArgumentList "/i `"$env:TEMP\wsl_update_x64.msi`" /quiet /norestart" -Wait
+
+wsl --set-default-version 2
 wsl --install -d Ubuntu
 
 # Optional: Set Ubuntu as default
