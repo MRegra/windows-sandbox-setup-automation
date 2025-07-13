@@ -127,7 +127,8 @@ Test-Tool "Docker" "docker version --format '{{.Server.Version}}'" "Docker is wo
 Test-Tool "PostgreSQL" "Get-Service -Name postgresql*" "PostgreSQL service installed." "PostgreSQL service not found."
 
 # --- STEP 8: FINALIZATION ---
-$stepCounter++; Show-Progress "Saving logs and preparing restart..."
+$stepCounter++
+Show-Progress "Saving logs and preparing restart..."
 
 $logPath = "$env:USERPROFILE\Desktop\validation-log.txt"
 $validationResults | Out-File -FilePath $logPath -Encoding utf8
