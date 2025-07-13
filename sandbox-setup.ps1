@@ -102,6 +102,6 @@ Test-Tool -Name "PostgreSQL Service" -Command "Get-Service -Name postgresql*" `
 $logPath = "$env:USERPROFILE\Desktop\validation-log.txt"
 $validationResults | Out-File -FilePath $logPath -Encoding utf8
 
-Write-Host "`n📝 Validation results saved to: $logPath"
+Write-Host "Validation results saved to: $logPath"
 
 Write-Host "✅ Setup complete. You may need to restart the Sandbox for env vars to apply."
