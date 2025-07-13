@@ -42,7 +42,7 @@ wsl -d Ubuntu -- bash -c "sudo apt update && sudo apt upgrade -y"
 
 # --- STEP 2: DOWNLOAD TOOLS ---
 $stepCounter++; Show-Progress "Downloading all required tools..."
-function Get-File($url, $name) {
+function Get-File ($url, $name) {
     $dest = "$env:TEMP\$name"
     Write-Host "📥 Downloading $name..."
     Invoke-WebRequest -Uri $url -OutFile $dest
@@ -69,7 +69,7 @@ Start-Process $postgresPath -ArgumentList "--mode unattended --unattendedmodeui 
 
 # --- STEP 4: UNZIP MAVEN & ENV VARS ---
 $stepCounter++
-Show-Progress "Configuring Maven & Java paths..."
+Show-Progress "Configuring Maven and Java paths..."
 Expand-Archive -Path $mavenPath -DestinationPath "C:\tools\maven" -Force
 $envVars = @{
     "MAVEN_HOME" = "C:\tools\maven\apache-maven-3.9.10"
@@ -133,6 +133,6 @@ $logPath = "$env:USERPROFILE\Desktop\validation-log.txt"
 $validationResults | Out-File -FilePath $logPath -Encoding utf8
 Write-Host "Validation results saved to: $logPath"
 Write-Host "✅ Setup complete. Restart is optional but recommended."
-Write-Host "⏳ Restarting in 60 seconds. Press Ctrl+C to cancel."
+Write-Host "Restarting in 60 seconds. Press Ctrl+C to cancel."
 Start-Sleep -Seconds 60
 shutdown /r /t 0
