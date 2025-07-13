@@ -16,7 +16,7 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 
 # --- PROGRESS UTILS ---
 $steps = @(
-    "Setting up WSL", "Downloading tools", "Installing tools", "Configuring Maven & Java", 
+    "Setting up WSL (Linux Subsystem)", "Downloading tools", "Installing tools", "Configuring Maven & Java", 
     "Installing Node", "Cloning Repo", "Validating Setup", "Finalizing"
 )
 $totalSteps = $steps.Count
@@ -28,17 +28,27 @@ function Show-Progress($msg) {
 }
 
 # --- STEP 1: SETUP WSL ---
+function Test-IfWindowsSandbox {
+    $username = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    return $username -eq "WDAGUtilityAccount"
+}
+
 $stepCounter++
-Show-Progress "Setting up WSL (Linux Subsystem)"
-# 1. Enable required features
-Write-Host "Enabling WSL and VirtualMachinePlatform features..."
-dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
-dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
-wsl --set-default-version 2
-wsl --install -d Ubuntu
-wsl --set-default Ubuntu
-Start-Sleep -Seconds 10
-wsl -d Ubuntu -- bash -c "sudo apt update && sudo apt upgrade -y"
+if (Test-IfWindowsSandbox) {
+    Show-Progress "Skipping WSL setup (Windows Sandbox detected)"
+    Write-Host "!! Detected Windows Sandbox environment. Skipping WSL setup... !!"
+} else {
+    # --- STEP 1: SETUP WSL ---
+    Show-Progress "Setting up WSL (Linux Subsystem)"
+    Write-Host "Enabling WSL and VirtualMachinePlatform features..."
+    dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+    dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+    wsl --set-default-version 2
+    wsl --install -d Ubuntu
+    wsl --set-default Ubuntu
+    Start-Sleep -Seconds 10
+    wsl -d Ubuntu -- bash -c "sudo apt update && sudo apt upgrade -y"
+}
 
 # --- STEP 2: DOWNLOAD TOOLS ---
 $stepCounter++; Show-Progress "Downloading all required tools..."
