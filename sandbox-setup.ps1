@@ -60,22 +60,37 @@ if (Test-IfWindowsSandbox) {
 
 # --- STEP 2: DOWNLOAD TOOLS ---
 Show-Progress "Downloading all required tools..."
-function Get-File ($url, $name) {
+function Start-ParallelDownload {
+    param (
+        [string]$url, [string]$name
+    )
     $dest = "$env:TEMP\$name"
-    Show-Progress "Downloading $name..."
-    Invoke-WebRequest -Uri $url -OutFile $dest
+    Start-Job -ScriptBlock {
+        param($url, $dest)
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
+    } -ArgumentList $url, $dest | Out-Null
     return $dest
 }
 
-$intellijPath = Get-File $intellijUrl "intellij.exe"
-$gitPath      = Get-File $gitUrl "git.exe"
-$javaPath     = Get-File $javaUrl "java.exe"
-$dockerPath   = Get-File $dockerUrl "docker.exe"
-$postgresPath = Get-File $postgresUrl "postgres.exe"
-$nvmPath      = Get-File $nvmUrl "nvm.exe"
-$mavenPath    = Get-File $mavenUrl "maven.zip"
-$vscodePath  = Get-File $vscodeUrl "vscode.exe"
-$postmanPath = Get-File $postmanUrl "postman.exe"
+# Start downloads in parallel
+$intellijPath = Start-ParallelDownload $intellijUrl "intellij.exe"
+$gitPath      = Start-ParallelDownload $gitUrl "git.exe"
+$javaPath     = Start-ParallelDownload $javaUrl "java.exe"
+$dockerPath   = Start-ParallelDownload $dockerUrl "docker.exe"
+$postgresPath = Start-ParallelDownload $postgresUrl "postgres.exe"
+$nvmPath      = Start-ParallelDownload $nvmUrl "nvm.exe"
+$mavenPath    = Start-ParallelDownload $mavenUrl "maven.zip"
+$vscodePath   = Start-ParallelDownload $vscodeUrl "vscode.exe"
+$postmanPath  = Start-ParallelDownload $postmanUrl "postman.exe"
+
+# Wait for all jobs to finish
+Show-Progress "Waiting for downloads to complete..."
+while (Get-Job | Where-Object { $_.State -eq 'Running' }) {
+    Start-Sleep -Seconds 2
+}
+Get-Job | Receive-Job | Out-Null
+Remove-Job *
 
 # --- STEP 3: INSTALL TOOLS ---
 Show-Progress "Installing tools silently..."
