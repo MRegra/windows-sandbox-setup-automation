@@ -50,7 +50,7 @@ function Test-Tool {
         [string]$FailMessage
     )
 
-    Write-Host "`n🔎 Checking $Name..."
+    Write-Host "Checking $Name..."
     try {
         $output = & $Command 2>&1
         if ($LASTEXITCODE -eq 0 -or $output) {

@@ -38,7 +38,7 @@ This project automates the creation of a clean, ready-to-code DevOps environment
 4. Run the following commands:
    ```powershell
    Set-ExecutionPolicy Bypass -Scope Process -Force
-   cd "$env:USERPROFILE\Downloads\windows-sandbox-dev-setup-main"
+   cd "$env:USERPROFILE\Downloads\windows-sandbox-setup-automation-main\windows-sandbox-setup-automation-main"
    .\sandbox-setup.ps1
    ```
 
