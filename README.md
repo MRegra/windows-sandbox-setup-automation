@@ -25,6 +25,28 @@ This project automates the creation of a clean, ready-to-code DevOps environment
 
 ---
 
+---
+
+## Running the Script from a ZIP Download (Sandbox Method)
+
+1. Inside the Sandbox, open a browser and download the ZIP version of the repo from GitHub.
+
+2. Extract the ZIP file.
+
+3. Open PowerShell **as Administrator**.
+
+4. Run the following commands:
+   ```powershell
+   Set-ExecutionPolicy Bypass -Scope Process -Force
+   cd "$env:USERPROFILE\Downloads\windows-sandbox-dev-setup-main"
+   .\sandbox-setup.ps1
+   ```
+
+This will install all tools and clone your repo in one go.
+
+---
+
+
 ## How to Use
 
 ### Prerequisites
