@@ -118,8 +118,27 @@ foreach ($key in $envVars.Keys) {
 # --- STEP 5: INSTALL NODE ---
 Show-Progress "Installing Node with NVM..."
 Start-Sleep -Seconds 5
-& "$env:ProgramFiles\nvm\nvm.exe" install latest
-& "$env:ProgramFiles\nvm\nvm.exe" use latest
+# Try common install paths
+$nvmPossiblePaths = @(
+    "$env:ProgramFiles\nvm\nvm.exe",
+    "$env:ProgramFiles(x86)\nvm\nvm.exe",
+    "$env:LOCALAPPDATA\nvm\nvm.exe"
+)
+
+$nvmExe = $nvmPossiblePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+if (-not $nvmExe) {
+    Write-Error "NVM executable not found. Installation may have failed."
+    exit 1
+}
+
+# Add NVM and Node paths manually to current session
+$nvmDir = Split-Path $nvmExe
+$env:PATH += ";$nvmDir"
+
+# Install and use latest Node.js
+& $nvmExe install latest
+& $nvmExe use latest
 
 # Now install Angular CLI and Dev Tools
 npm install -g @angular/cli
