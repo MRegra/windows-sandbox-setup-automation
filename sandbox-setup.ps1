@@ -25,6 +25,8 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 
 $ProgressPreference = 'Continue'
 
+Install-Module -Name ThreadJob -Scope CurrentUser
+
 # --- PROGRESS UTILS ---
 $steps = @(
     "Setting up WSL (Linux Subsystem)", "Downloading tools", "Installing tools", "Configuring Maven & Java", 
@@ -59,50 +61,58 @@ if (Test-IfWindowsSandbox) {
 
 # --- STEP 2: DOWNLOAD TOOLS ---
 Show-Progress "Downloading all required tools..."
+
 function Start-ParallelDownload {
     param (
-        [string]$url, [string]$name
+        [string]$url, 
+        [string]$name
     )
+
     $dest = "$env:TEMP\$name"
-    Write-Host "Downloading $name..." -ForegroundColor Yellow
-    Start-Job -ScriptBlock {
+    Write-Host "Starting download for $name..." -ForegroundColor Yellow
+
+    $job = Start-ThreadJob -ScriptBlock {
         param($url, $dest)
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
-    } -ArgumentList $url, $dest | Out-Null
-    return $dest
+        return "Downloaded $dest"
+    } -ArgumentList $url, $dest
+
+    # Tag the job with the name of the tool
+    $job | Add-Member -MemberType NoteProperty -Name JobName -Value $name
+    return $job
 }
 
-# Start downloads in parallel
-$intellijPath = Start-ParallelDownload $intellijUrl "intellij.exe"
-$gitPath      = Start-ParallelDownload $gitUrl "git.exe"
-$javaPath     = Start-ParallelDownload $javaUrl "java.exe"
-$dockerPath   = Start-ParallelDownload $dockerUrl "docker.exe"
-$postgresPath = Start-ParallelDownload $postgresUrl "postgres.exe"
-$nvmPath      = Start-ParallelDownload $nvmUrl "nvm.exe"
-$mavenPath    = Start-ParallelDownload $mavenUrl "maven.zip"
-$vscodePath   = Start-ParallelDownload $vscodeUrl "vscode.exe"
-$postmanPath  = Start-ParallelDownload $postmanUrl "postman.exe"
+# Start downloads in parallel and collect the jobs
+$jobs = @()
+$jobs += Start-ParallelDownload $intellijUrl "intellij.exe"
+$jobs += Start-ParallelDownload $gitUrl      "git.exe"
+$jobs += Start-ParallelDownload $javaUrl     "java.exe"
+$jobs += Start-ParallelDownload $dockerUrl   "docker.exe"
+$jobs += Start-ParallelDownload $postgresUrl "postgres.exe"
+$jobs += Start-ParallelDownload $nvmUrl      "nvm.exe"
+$jobs += Start-ParallelDownload $mavenUrl    "maven.zip"
+$jobs += Start-ParallelDownload $vscodeUrl   "vscode.exe"
+$jobs += Start-ParallelDownload $postmanUrl  "postman.exe"
 
 # Wait for all jobs to finish
 Show-Progress "Waiting for downloads to complete..."
-while (Get-Job | Where-Object { $_.State -eq 'Running' }) {
+while ($jobs | Where-Object { $_.State -eq 'Running' }) {
     Start-Sleep -Seconds 2
 }
-$jobs = Get-Job
 
+# Handle job results
 foreach ($job in $jobs) {
-    $jobName = $job.Command
+    $jobName = $job.JobName
     $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
-    
+
     if ($job.State -eq 'Completed') {
-        Write-Host "Job $jobName completed." -ForegroundColor Green
+        Write-Host "Job '$jobName' completed." -ForegroundColor Green
         if ($result) {
-            Write-Host "Output:" -ForegroundColor DarkGray
-            Write-Output $result
+            Write-Host "$result" -ForegroundColor DarkGray
         }
     } else {
-        Write-Host "[X] Job $jobName failed or incomplete." -ForegroundColor Red
+        Write-Host "X Job '$jobName' failed or incomplete." -ForegroundColor Red
         if ($result) {
             Write-Host "Error Output:" -ForegroundColor Red
             Write-Output $result
@@ -111,6 +121,7 @@ foreach ($job in $jobs) {
 
     Remove-Job -Job $job
 }
+
 
 # --- STEP 3: INSTALL TOOLS ---
 Show-Progress "Installing tools silently..."
