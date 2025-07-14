@@ -23,7 +23,7 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
     exit
 }
 
-$ProgressPreference = 'SilentlyContinue'
+$ProgressPreference = 'Continue'
 
 # --- PROGRESS UTILS ---
 $steps = @(
@@ -65,6 +65,7 @@ function Start-ParallelDownload {
         [string]$url, [string]$name
     )
     $dest = "$env:TEMP\$name"
+    Write-Host "Downloading $name..." -ForegroundColor Yellow
     Start-Job -ScriptBlock {
         param($url, $dest)
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -89,8 +90,28 @@ Show-Progress "Waiting for downloads to complete..."
 while (Get-Job | Where-Object { $_.State -eq 'Running' }) {
     Start-Sleep -Seconds 2
 }
-Get-Job | Receive-Job | Out-Null
-Remove-Job *
+$jobs = Get-Job
+
+foreach ($job in $jobs) {
+    $jobName = $job.Command
+    $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
+    
+    if ($job.State -eq 'Completed') {
+    Write-Host "[✓] Job '$jobName' completed." -ForegroundColor Green
+    if ($result) {
+        Write-Host "Output:" -ForegroundColor DarkGray
+        Write-Output $result
+    }
+    } else {
+        Write-Host "[✗] Job '$jobName' failed or incomplete." -ForegroundColor Red
+        if ($result) {
+            Write-Host "Error Output:" -ForegroundColor Red
+            Write-Output $result
+        }
+    }
+
+    Remove-Job -Job $job
+}
 
 # --- STEP 3: INSTALL TOOLS ---
 Show-Progress "Installing tools silently..."
@@ -170,13 +191,13 @@ function Test-Tool {
     try {
         $output = & $Command 2>&1
         if ($LASTEXITCODE -eq 0 -or $output) {
-            Write-Progress "$Success"
+            Write-Host "$Success"
             $validationResults += "$Name OK"
         } else {
             throw "No output"
         }
     } catch {
-        Write-Progress "$Failure"
+        Write-Host "$Failure"
         $validationResults += "$Name failed"
     }
 }
