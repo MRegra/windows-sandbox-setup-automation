@@ -27,7 +27,7 @@ $ProgressPreference = 'Continue'
 
 # --- PROGRESS UTILS ---
 $steps = @(
-    "Setting up WSL (Linux Subsystem)", "Downloading tools", "Installing tools", "Configuring Maven & Java", 
+    "Downloading tools", "Installing tools", "Configuring Maven & Java", 
     "Installing Node", "Cloning Repo", "Validating Setup", "Finalizing"
 )
 $totalSteps = $steps.Count
@@ -38,43 +38,7 @@ function Show-Progress($msg) {
     $script:stepCounter++
 }
 
-function Test-IfWindowsSandbox {
-    $username = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-    return $username -match "WDAGUtilityAccount" -or $env:USERNAME -eq 'WDAGUtilityAccount'
-}
-
-if (Test-IfWindowsSandbox) {
-    Show-Progress "Skipping WSL setup (Windows Sandbox detected)"
-} else {
-    $userChoice = Read-Host "WSL2 is not installed. Do you want to install WSL2 with Ubuntu? (y/n)"
-    if ($userChoice -match '^[yY]') {
-        # --- STEP 1: SETUP WSL ---
-        Show-Progress "Setting up WSL (Linux Subsystem)..."
-
-        try {
-            dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
-            dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
-
-            # Requires reboot for VM Platform to take effect
-            Show-Progress "WSL features enabled. A restart might be required before continuing."
-
-            wsl --set-default-version 2
-            wsl --install -d Ubuntu
-            wsl --set-default Ubuntu
-
-            Show-Progress "Waiting for WSL to finalize installation..."
-            Start-Sleep -Seconds 10
-
-            wsl -d Ubuntu -- bash -c "sudo apt update && sudo apt upgrade -y"
-        } catch {
-            Write-Host "X WSL setup failed: $($_.Exception.Message)" -ForegroundColor Red
-        }
-    } else {
-        Show-Progress "User chose to skip WSL2 installation"
-    }
-}
-
-# --- STEP 2: DOWNLOAD TOOLS ---
+# --- STEP 1: DOWNLOAD TOOLS ---
 function Start-Download {
     param (
         [string]$url,
@@ -111,7 +75,19 @@ foreach ($item in $downloadList) {
     Start-Download $item.url $item.name
 }
 
-# --- STEP 3: INSTALL TOOLS ---
+
+# --- STEP 2: INSTALL TOOLS ---
+# --- Define paths to downloaded installers ---
+$gitPath      = "$env:TEMP\git.exe"
+$javaPath     = "$env:TEMP\java.exe"
+$nvmPath      = "$env:TEMP\nvm.exe"
+$intellijPath = "$env:TEMP\intellij.exe"
+$dockerPath   = "$env:TEMP\docker.exe"
+$postgresPath = "$env:TEMP\postgres.exe"
+$mavenPath    = "$env:TEMP\maven.zip"
+$vscodePath   = "$env:TEMP\vscode.exe"
+$postmanPath  = "$env:TEMP\postman.exe"
+
 Show-Progress "Installing tools silently..."
 Start-Process $gitPath -ArgumentList "/VERYSILENT /NORESTART" -Wait
 Start-Process $nvmPath -ArgumentList "/VERYSILENT /NORESTART" -Wait
@@ -122,7 +98,7 @@ Start-Process $postgresPath -ArgumentList "--mode unattended --unattendedmodeui 
 Start-Process $vscodePath -ArgumentList "/silent /mergetasks=!runcode" -Wait
 Start-Process $postmanPath -ArgumentList "/silent" -Wait
 
-# --- STEP 4: UNZIP MAVEN & ENV VARS ---
+# --- STEP 3: UNZIP MAVEN & ENV VARS ---
 Show-Progress "Configuring Maven and Java paths..."
 Expand-Archive -Path $mavenPath -DestinationPath $mavenExtractPath -Force
 
@@ -136,7 +112,7 @@ foreach ($key in $envVars.Keys) {
     [System.Environment]::SetEnvironmentVariable($key, $envVars[$key], "Machine")
 }
 
-# --- STEP 5: INSTALL NODE ---
+# --- STEP 4: INSTALL NODE ---
 Show-Progress "Installing Node with NVM..."
 Start-Sleep -Seconds 5
 # Try common install paths
@@ -173,13 +149,13 @@ if (Test-Path $vsCodePath) {
 code --install-extension Angular.ng-template
 code --install-extension johnpapa.angular2
 
-# --- STEP 6: CLONE REPO ---
+# --- STEP 5: CLONE REPO ---
 Show-Progress "Cloning repository..."
 if ($repoUrl -ne "") {
     git clone $repoUrl "$env:USERPROFILE\dev-project"
 }
 
-# --- STEP 7: VALIDATION ---
+# --- STEP 6: VALIDATION ---
 Show-Progress "Running validation checks..."
 $validationResults = @()
 
