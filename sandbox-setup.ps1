@@ -33,8 +33,7 @@ $steps = @(
 $totalSteps = $steps.Count
 $stepCounter = 1
 function Show-Progress($msg) {
-    $percent = [math]::Round(($stepCounter / $totalSteps) * 100)
-    Write-Host "=== STEP $percent: $msg ===" -ForegroundColor Cyan
+    Write-Host "=== STEP (${stepCounter}/${totalSteps}): $msg ===" -ForegroundColor Cyan
     $script:stepCounter++
 }
 
