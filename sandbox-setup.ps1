@@ -35,7 +35,6 @@ $stepCounter = 0
 function Show-Progress($msg) {
     $percent = [math]::Round(($stepCounter / $totalSteps) * 100)
     Write-Progress -Activity "Developer Environment Setup" -Status "$msg ($stepCounter/$totalSteps)" -PercentComplete $percent
-    Write-Progress ">>> $msg"
     $script:stepCounter++
 }
 
@@ -97,13 +96,13 @@ foreach ($job in $jobs) {
     $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
     
     if ($job.State -eq 'Completed') {
-    Write-Host "[✓] Job '$jobName' completed." -ForegroundColor Green
-    if ($result) {
-        Write-Host "Output:" -ForegroundColor DarkGray
-        Write-Output $result
-    }
+        Write-Host "Job $jobName completed." -ForegroundColor Green
+        if ($result) {
+            Write-Host "Output:" -ForegroundColor DarkGray
+            Write-Output $result
+        }
     } else {
-        Write-Host "[✗] Job '$jobName' failed or incomplete." -ForegroundColor Red
+        Write-Host "[X] Job $jobName failed or incomplete." -ForegroundColor Red
         if ($result) {
             Write-Host "Error Output:" -ForegroundColor Red
             Write-Output $result
@@ -127,11 +126,13 @@ Start-Process $postmanPath -ArgumentList "/silent" -Wait
 # --- STEP 4: UNZIP MAVEN & ENV VARS ---
 Show-Progress "Configuring Maven and Java paths..."
 Expand-Archive -Path $mavenPath -DestinationPath $mavenExtractPath -Force
+
 $envVars = @{
     "MAVEN_HOME" = $mavenFullPath
     "JAVA_HOME"  = $javaPathVar
     "Path"       = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";$mavenFullPath\bin;$javaPathVar\bin"
 }
+
 foreach ($key in $envVars.Keys) {
     [System.Environment]::SetEnvironmentVariable($key, $envVars[$key], "Machine")
 }
