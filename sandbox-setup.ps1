@@ -25,8 +25,6 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 
 $ProgressPreference = 'Continue'
 
-Install-Module -Name ThreadJob -Scope CurrentUser
-
 # --- PROGRESS UTILS ---
 $steps = @(
     "Setting up WSL (Linux Subsystem)", "Downloading tools", "Installing tools", "Configuring Maven & Java", 
