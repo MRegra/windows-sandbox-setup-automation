@@ -48,50 +48,96 @@ function Test-IfWindowsSandbox {
 if (Test-IfWindowsSandbox) {
     Show-Progress "Skipping WSL setup (Windows Sandbox detected)"
 } else {
-    # --- STEP 1: SETUP WSL ---
-    Show-Progress "Setting up WSL (Linux Subsystem)"
-    dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
-    dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
-    wsl --set-default-version 2
-    wsl --install -d Ubuntu
-    wsl --set-default Ubuntu
-    Start-Sleep -Seconds 10
-    wsl -d Ubuntu -- bash -c "sudo apt update && sudo apt upgrade -y"
+    $userChoice = Read-Host "WSL2 is not installed. Do you want to install WSL2 with Ubuntu? (y/n)"
+    if ($userChoice -match '^[yY]') {
+        # --- STEP 1: SETUP WSL ---
+        Show-Progress "Setting up WSL (Linux Subsystem)..."
+
+        try {
+            dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+            dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+
+            # Requires reboot for VM Platform to take effect
+            Show-Progress "WSL features enabled. A restart might be required before continuing."
+
+            wsl --set-default-version 2
+            wsl --install -d Ubuntu
+            wsl --set-default Ubuntu
+
+            Show-Progress "Waiting for WSL to finalize installation..."
+            Start-Sleep -Seconds 10
+
+            wsl -d Ubuntu -- bash -c "sudo apt update && sudo apt upgrade -y"
+        } catch {
+            Write-Host "X WSL setup failed: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    } else {
+        Show-Progress "User chose to skip WSL2 installation"
+    }
 }
 
 # --- STEP 2: DOWNLOAD TOOLS ---
 Show-Progress "Downloading all required tools..."
 
-function Start-DownloadTool {
+function Start-ParallelDownload {
     param (
-        [string]$url,
+        [string]$url, 
         [string]$name
     )
 
     $dest = "$env:TEMP\$name"
-    Write-Host "Downloading $name..." -ForegroundColor Yellow
+    Write-Host "Starting download for $name..." -ForegroundColor Yellow
 
-    try {
+    $job = Start-Job -ScriptBlock {
+        param($url, $dest)
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
-        Write-Host "Downloaded $name to $dest" -ForegroundColor Green
-    } catch {
-        Write-Host "X Failed to download $name" -ForegroundColor Red
-        Write-Host $_.Exception.Message -ForegroundColor DarkRed
-    }
+        return "Downloaded $dest"
+    } -ArgumentList $url, $dest
+
+    # Tag the job with the name of the tool
+    $job | Add-Member -MemberType NoteProperty -Name JobName -Value $name
+    return $job
 }
 
-# Download tools one by one
-Start-DownloadTool $intellijUrl "intellij.exe"
-Start-DownloadTool $gitUrl      "git.exe"
-Start-DownloadTool $javaUrl     "java.exe"
-Start-DownloadTool $dockerUrl   "docker.exe"
-Start-DownloadTool $postgresUrl "postgres.exe"
-Start-DownloadTool $nvmUrl      "nvm.exe"
-Start-DownloadTool $mavenUrl    "maven.zip"
-Start-DownloadTool $vscodeUrl   "vscode.exe"
-Start-DownloadTool $postmanUrl  "postman.exe"
+# Start downloads in parallel and collect the jobs
+$jobs = @()
+$jobs += Start-ParallelDownload $intellijUrl "intellij.exe"
+$jobs += Start-ParallelDownload $gitUrl      "git.exe"
+$jobs += Start-ParallelDownload $javaUrl     "java.exe"
+$jobs += Start-ParallelDownload $dockerUrl   "docker.exe"
+$jobs += Start-ParallelDownload $postgresUrl "postgres.exe"
+$jobs += Start-ParallelDownload $nvmUrl      "nvm.exe"
+$jobs += Start-ParallelDownload $mavenUrl    "maven.zip"
+$jobs += Start-ParallelDownload $vscodeUrl   "vscode.exe"
+$jobs += Start-ParallelDownload $postmanUrl  "postman.exe"
 
+# Wait for all jobs to finish
+Show-Progress "Waiting for downloads to complete..."
+while ($jobs | Where-Object { $_.State -eq 'Running' }) {
+    Start-Sleep -Seconds 2
+}
+
+# Handle job results
+foreach ($job in $jobs) {
+    $jobName = $job.JobName
+    $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
+
+    if ($job.State -eq 'Completed') {
+        Write-Host "Job '$jobName' completed." -ForegroundColor Green
+        if ($result) {
+            Write-Host "$result" -ForegroundColor DarkGray
+        }
+    } else {
+        Write-Host "X Job '$jobName' failed or incomplete." -ForegroundColor Red
+        if ($result) {
+            Write-Host "Error Output:" -ForegroundColor Red
+            Write-Output $result
+        }
+    }
+
+    Remove-Job -Job $job
+}
 
 
 # --- STEP 3: INSTALL TOOLS ---
