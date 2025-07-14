@@ -91,11 +91,11 @@ function Install-Tool {
     param (
         [string]$name,
         [string]$path,
-        [string]$args
+        [string]$extraArgs
     )
     if (Test-Path $path) {
         Write-Host "[INSTALLING] $name..." -ForegroundColor Cyan
-        Start-Process $path -ArgumentList $args -Wait
+        Start-Process $path -ArgumentList $extraArgs -Wait
         Write-Host "[DONE] $name installed." -ForegroundColor Green
     } else {
         Write-Host "[SKIPPED] $name not found at $path" -ForegroundColor Yellow
@@ -104,14 +104,14 @@ function Install-Tool {
 
 Show-Progress "Installing tools silently..."
 
-Install-Tool "Git"       $gitPath      "/VERYSILENT /NORESTART"
-Install-Tool "NVM"       $nvmPath      "/VERYSILENT /NORESTART"
-Install-Tool "IntelliJ"  $intellijPath "/S"
-Install-Tool "Java"      $javaPath     "/s INSTALL_SILENT=Enable"
-Install-Tool "Docker"    $dockerPath   "install --quiet"
+Install-Tool "Git" $gitPath "/VERYSILENT /NORESTART"
+Install-Tool "NVM" $nvmPath "/VERYSILENT /NORESTART"
+Install-Tool "IntelliJ" $intellijPath "/S"
+Install-Tool "Java" $javaPath "/s INSTALL_SILENT=Enable"
+Install-Tool "Docker" $dockerPath "install --quiet"
 Install-Tool "PostgreSQL" $postgresPath "--mode unattended --unattendedmodeui minimal"
-Install-Tool "VSCode"    $vscodePath   "/silent /mergetasks=!runcode"
-Install-Tool "Postman"   $postmanPath  "/silent"
+Install-Tool "VSCode" $vscodePath "/silent /mergetasks=!runcode"
+Install-Tool "Postman" $postmanPath "/silent"
 
 # --- STEP 3: UNZIP MAVEN & ENV VARS ---
 Show-Progress "Configuring Maven and Java paths..."
