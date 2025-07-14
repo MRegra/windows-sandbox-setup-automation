@@ -75,68 +75,44 @@ if (Test-IfWindowsSandbox) {
 }
 
 # --- STEP 2: DOWNLOAD TOOLS ---
-Show-Progress "Downloading all required tools..."
+# Ask user preferences
+$useParallel = Read-Host "Do you want to download in parallel? (Y/N)" -eq ^"yY"
 
-function Start-ParallelDownload {
+function Start-Download {
     param (
-        [string]$url, 
+        [string]$url,
         [string]$name
     )
 
     $dest = "$env:TEMP\$name"
-    Write-Host "Starting download for $name..." -ForegroundColor Yellow
+    Write-Host "Downloading $name..." -ForegroundColor Yellow
 
-    $job = Start-Job -ScriptBlock {
-        param($url, $dest)
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
-        return "Downloaded $dest"
-    } -ArgumentList $url, $dest
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
-    # Tag the job with the name of the tool
-    $job | Add-Member -MemberType NoteProperty -Name JobName -Value $name
-    return $job
+    curl.exe -L $url -o $dest
+
+    $stopwatch.Stop()
+    Write-Host "$name downloaded in $($stopwatch.Elapsed.TotalSeconds) seconds" -ForegroundColor Green
 }
 
-# Start downloads in parallel and collect the jobs
-$jobs = @()
-$jobs += Start-ParallelDownload $intellijUrl "intellij.exe"
-$jobs += Start-ParallelDownload $gitUrl      "git.exe"
-$jobs += Start-ParallelDownload $javaUrl     "java.exe"
-$jobs += Start-ParallelDownload $dockerUrl   "docker.exe"
-$jobs += Start-ParallelDownload $postgresUrl "postgres.exe"
-$jobs += Start-ParallelDownload $nvmUrl      "nvm.exe"
-$jobs += Start-ParallelDownload $mavenUrl    "maven.zip"
-$jobs += Start-ParallelDownload $vscodeUrl   "vscode.exe"
-$jobs += Start-ParallelDownload $postmanUrl  "postman.exe"
+Show-Progress "Downloading all required tools..."
 
-# Wait for all jobs to finish
-Show-Progress "Waiting for downloads to complete..."
-while ($jobs | Where-Object { $_.State -eq 'Running' }) {
-    Start-Sleep -Seconds 2
+# Define your download URLs here
+$downloadList = @(
+    @{ url = $intellijUrl; name = "intellij.exe" },
+    @{ url = $gitUrl;      name = "git.exe" },
+    @{ url = $javaUrl;     name = "java.exe" },
+    @{ url = $dockerUrl;   name = "docker.exe" },
+    @{ url = $postgresUrl; name = "postgres.exe" },
+    @{ url = $nvmUrl;      name = "nvm.exe" },
+    @{ url = $mavenUrl;    name = "maven.zip" },
+    @{ url = $vscodeUrl;   name = "vscode.exe" },
+    @{ url = $postmanUrl;  name = "postman.exe" }
+)
+
+foreach ($item in $downloadList) {
+    Start-Download $item.url $item.name
 }
-
-# Handle job results
-foreach ($job in $jobs) {
-    $jobName = $job.JobName
-    $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
-
-    if ($job.State -eq 'Completed') {
-        Write-Host "Job '$jobName' completed." -ForegroundColor Green
-        if ($result) {
-            Write-Host "$result" -ForegroundColor DarkGray
-        }
-    } else {
-        Write-Host "X Job '$jobName' failed or incomplete." -ForegroundColor Red
-        if ($result) {
-            Write-Host "Error Output:" -ForegroundColor Red
-            Write-Output $result
-        }
-    }
-
-    Remove-Job -Job $job
-}
-
 
 # --- STEP 3: INSTALL TOOLS ---
 Show-Progress "Installing tools silently..."
