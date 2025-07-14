@@ -75,9 +75,6 @@ if (Test-IfWindowsSandbox) {
 }
 
 # --- STEP 2: DOWNLOAD TOOLS ---
-# Ask user preferences
-$useParallel = Read-Host "Do you want to download in parallel? (Y/N)" -eq ^"yY"
-
 function Start-Download {
     param (
         [string]$url,
