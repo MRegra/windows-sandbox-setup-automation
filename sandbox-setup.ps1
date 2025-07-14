@@ -31,10 +31,10 @@ $steps = @(
     "Installing Node", "Cloning Repo", "Validating Setup", "Finalizing"
 )
 $totalSteps = $steps.Count
-$stepCounter = 0
+$stepCounter = 1
 function Show-Progress($msg) {
     $percent = [math]::Round(($stepCounter / $totalSteps) * 100)
-    Write-Progress -Activity "Developer Environment Setup" -Status "$msg ($stepCounter/$totalSteps)" -PercentComplete $percent
+    Write-Host "=== STEP $percent: $msg ===" -ForegroundColor Cyan
     $script:stepCounter++
 }
 
@@ -88,15 +88,31 @@ $mavenPath    = "$env:TEMP\maven.zip"
 $vscodePath   = "$env:TEMP\vscode.exe"
 $postmanPath  = "$env:TEMP\postman.exe"
 
+function Install-Tool {
+    param (
+        [string]$name,
+        [string]$path,
+        [string]$args
+    )
+    if (Test-Path $path) {
+        Write-Host "[INSTALLING] $name..." -ForegroundColor Cyan
+        Start-Process $path -ArgumentList $args -Wait
+        Write-Host "[DONE] $name installed." -ForegroundColor Green
+    } else {
+        Write-Host "[SKIPPED] $name not found at $path" -ForegroundColor Yellow
+    }
+}
+
 Show-Progress "Installing tools silently..."
-Start-Process $gitPath -ArgumentList "/VERYSILENT /NORESTART" -Wait
-Start-Process $nvmPath -ArgumentList "/VERYSILENT /NORESTART" -Wait
-Start-Process $intellijPath -ArgumentList "/S" -Wait
-Start-Process $javaPath -ArgumentList "/s INSTALL_SILENT=Enable" -Wait
-Start-Process $dockerPath -ArgumentList "install --quiet" -Wait
-Start-Process $postgresPath -ArgumentList "--mode unattended --unattendedmodeui minimal" -Wait
-Start-Process $vscodePath -ArgumentList "/silent /mergetasks=!runcode" -Wait
-Start-Process $postmanPath -ArgumentList "/silent" -Wait
+
+Install-Tool "Git"       $gitPath      "/VERYSILENT /NORESTART"
+Install-Tool "NVM"       $nvmPath      "/VERYSILENT /NORESTART"
+Install-Tool "IntelliJ"  $intellijPath "/S"
+Install-Tool "Java"      $javaPath     "/s INSTALL_SILENT=Enable"
+Install-Tool "Docker"    $dockerPath   "install --quiet"
+Install-Tool "PostgreSQL" $postgresPath "--mode unattended --unattendedmodeui minimal"
+Install-Tool "VSCode"    $vscodePath   "/silent /mergetasks=!runcode"
+Install-Tool "Postman"   $postmanPath  "/silent"
 
 # --- STEP 3: UNZIP MAVEN & ENV VARS ---
 Show-Progress "Configuring Maven and Java paths..."
